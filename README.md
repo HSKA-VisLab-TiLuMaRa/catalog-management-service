@@ -12,6 +12,10 @@ This project is part of the microservice architecture which can be found [here](
   - done by Hystrix
 - they register themselves at the eureka-server
 
+## Hystrix Dashboard
+- To Access the Hystrix Dashboard, go to [localhost:8091/hystrix](http://localhost:8090/hystrix).
+- Then, enter http://localhost:8091/metrics/hystrix.stream in the url-field, enter a title and start monitoring
+
 # Organization  Authors
 [Tim Piotrowski](timpio95@web.de)
 
