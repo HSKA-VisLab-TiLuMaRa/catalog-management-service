@@ -90,4 +90,17 @@ public class ProductClient {
 		return productCache.getOrDefault(productId, new Product());
 	}
 
+	public Product createProductFallback(Product payload){
+		return payload;
+	}
+
+	public Product updateProductFallback(Long productId, Product payload){
+		return payload;
+	}
+
+	public Product deleteProductFallback(Long productId){
+		return new Product();
+	}
+
+
 }

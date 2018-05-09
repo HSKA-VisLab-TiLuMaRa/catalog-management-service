@@ -92,4 +92,17 @@ public class CategoryClient {
 		return categoryCache.getOrDefault(categoryId, new Category());
 	}
 
+	public Category createCategoryFallback(Category payload){
+		return payload;
+	}
+
+	public Category updateCategoryFallback(Long categoryId, Category payload){
+		return payload;
+	}
+
+	public Category deleteCategoryFallback(Long categoryId){
+		return new Category();
+	}
+
+
 }
