@@ -47,6 +47,11 @@ public class CategoryClient {
 	@HystrixCommand(fallbackMethod = "getCategoryCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Category getCategory(Long categoryId) {
+		
+		if (categoryId == null) {
+			return null;
+		}
+		
 		Category tmpcategory = restTemplate.getForObject("http://category-service/categories/" + categoryId,
 				Category.class);
 		categoryCache.putIfAbsent(categoryId, tmpcategory);
