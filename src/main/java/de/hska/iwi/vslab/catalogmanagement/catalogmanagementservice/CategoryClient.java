@@ -16,20 +16,23 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-
 @Component
 public class CategoryClient {
 
-    private final Map<Long, Category> categoryCache = new LinkedHashMap<Long, Category>();
-    @LoadBalanced
-    @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
-        return builder.build();
-    }
+	private final Map<Long, Category> categoryCache = new LinkedHashMap<Long, Category>();
+
+	@LoadBalanced
+	@Bean
+	public RestTemplate restTemplate(RestTemplateBuilder builder) {
+		return builder.build();
+	}
 
 	@Autowired
 	private RestTemplate restTemplate;
 
+	/*
+	-------GET---------
+	*/
 	@HystrixCommand(fallbackMethod = "getCategoriesCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Iterable<Category> getCategories() {
@@ -44,9 +47,46 @@ public class CategoryClient {
 	@HystrixCommand(fallbackMethod = "getCategoryCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Category getCategory(Long categoryId) {
-		Category tmpcategory = restTemplate.getForObject("http://category-service/categories/" + categoryId, Category.class);
+		
+		if (categoryId == null) {
+			return null;
+		}
+		
+		Category tmpcategory = restTemplate.getForObject("http://category-service/categories/" + categoryId,
+				Category.class);
 		categoryCache.putIfAbsent(categoryId, tmpcategory);
 		return tmpcategory;
+	}
+
+	/*
+	-------POST---------
+	*/
+	@HystrixCommand(fallbackMethod = "createCategoryFallback", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Category createCategory(Category payload) {
+		Category tmpcategory = restTemplate.postForObject("http://category-service/categories", payload,
+				Category.class);
+		return tmpcategory;
+	}
+
+	/*
+	-------PUT---------
+	*/
+	@HystrixCommand(fallbackMethod = "updateCategoryFallback", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Category updateCategory(Long categoryId, Category payload) {
+		restTemplate.put("http://category-service/categories/" + categoryId, payload);
+		return new Category();
+	}
+
+	/*
+	-------DELETE---------
+	*/
+	@HystrixCommand(fallbackMethod = "deleteCategoryFallback", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Category deleteCategory(Long categoryId) {
+		restTemplate.delete("http://category-service/categories/" + categoryId);
+		return new Category();
 	}
 
 	public Iterable<Category> getCategoriesCache() {
@@ -56,5 +96,18 @@ public class CategoryClient {
 	public Category getCategoryCache(Long categoryId) {
 		return categoryCache.getOrDefault(categoryId, new Category());
 	}
+
+	public Category createCategoryFallback(Category payload){
+		return payload;
+	}
+
+	public Category updateCategoryFallback(Long categoryId, Category payload){
+		return payload;
+	}
+
+	public Category deleteCategoryFallback(Long categoryId){
+		return new Category();
+	}
+
 
 }
