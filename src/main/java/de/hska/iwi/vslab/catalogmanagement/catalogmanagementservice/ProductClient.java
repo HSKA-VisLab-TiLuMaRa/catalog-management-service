@@ -21,14 +21,14 @@ public class ProductClient {
 
 	private final Map<Long, Product> productCache = new LinkedHashMap<Long, Product>();
 
+	@Autowired
+	private RestTemplate productRestTemplate;
+
 	@LoadBalanced
 	@Bean
-	public RestTemplate restTemplate(RestTemplateBuilder builder) {
+	public RestTemplate productRestTemplate(RestTemplateBuilder builder) {
 		return builder.build();
 	}
-
-	@Autowired
-	private RestTemplate restTemplate;
 
 	/*
 	-------GET---------
@@ -37,7 +37,7 @@ public class ProductClient {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Iterable<Product> getProducts() {
 		Collection<Product> products = new HashSet<Product>();
-		Product[] tmpproducts = restTemplate.getForObject("http://product-service/products", Product[].class);
+		Product[] tmpproducts = productRestTemplate.getForObject("http://product-service/products", Product[].class);
 		Collections.addAll(products, tmpproducts);
 		productCache.clear();
 		products.forEach(u -> productCache.put(u.getId(), u));
@@ -46,7 +46,7 @@ public class ProductClient {
 	@HystrixCommand(fallbackMethod = "getProductCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product getProduct(Long productId) {
-		Product tmpproduct = restTemplate.getForObject("http://product-service/products/" + productId, Product.class);
+		Product tmpproduct = productRestTemplate.getForObject("http://product-service/products/" + productId, Product.class);
 		productCache.putIfAbsent(productId, tmpproduct);
 		return tmpproduct;
 	}
@@ -57,7 +57,7 @@ public class ProductClient {
 	@HystrixCommand(fallbackMethod = "createProductFallback", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product createProduct(Product payload) {
-		Product tmpproduct = restTemplate.postForObject("http://product-service/products", payload,
+		Product tmpproduct = productRestTemplate.postForObject("http://product-service/products", payload,
 				Product.class);
 		return tmpproduct;
 	}
@@ -68,7 +68,7 @@ public class ProductClient {
 	@HystrixCommand(fallbackMethod = "updateProductFallback", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product updateProduct(Long productId, Product payload) {
-		restTemplate.put("http://product-service/products/" + productId, payload);
+		productRestTemplate.put("http://product-service/products/" + productId, payload);
 		return new Product();
 	}
 
@@ -78,7 +78,7 @@ public class ProductClient {
 	@HystrixCommand(fallbackMethod = "deleteProductFallback", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product deleteProduct(Long productId) {
-		restTemplate.delete("http://product-service/products/" + productId);
+		productRestTemplate.delete("http://product-service/products/" + productId);
 		return new Product();
 	}
 
