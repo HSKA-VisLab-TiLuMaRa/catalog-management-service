@@ -4,9 +4,6 @@ spring:
   application:
     name: catalog-management
 eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
   instance:
     preferIpAddress: true
     leaseRenewalIntervalInSeconds: 5
