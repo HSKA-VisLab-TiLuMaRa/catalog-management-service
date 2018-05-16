@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import java.net.URI;
+import java.util.Optional;
+
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 
@@ -43,6 +46,29 @@ public class ProductClient {
 		products.forEach(u -> productCache.put(u.getId(), u));
 		return products;
 	}
+
+	@HystrixCommand(fallbackMethod = "getProductsCache", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Iterable<Product> getProducts(String name) {
+		Collection<Product> products = new HashSet<Product>();
+		Product[] tmpproducts = productRestTemplate.getForObject("http://product-service/products?name=" + name, Product[].class);
+		Collections.addAll(products, tmpproducts);
+		productCache.clear();
+		products.forEach(u -> productCache.put(u.getId(), u));
+		return products;
+	}
+
+	@HystrixCommand(fallbackMethod = "getProductsCache", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Iterable<Product> getProducts(Integer categoryId) {
+		Collection<Product> products = new HashSet<Product>();
+		Product[] tmpproducts = productRestTemplate.getForObject("http://product-service/products?categoryId=" + categoryId, Product[].class);
+		Collections.addAll(products, tmpproducts);
+		productCache.clear();
+		products.forEach(u -> productCache.put(u.getId(), u));
+		return products;
+	}
+
 	@HystrixCommand(fallbackMethod = "getProductCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product getProduct(Long productId) {
@@ -58,7 +84,7 @@ public class ProductClient {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Product createProduct(Product payload) {
 		Product tmpproduct = productRestTemplate.postForObject("http://product-service/products", payload,
-				Product.class);
+		Product.class);
 		return tmpproduct;
 	}
 
@@ -83,6 +109,14 @@ public class ProductClient {
 	}
 
 	public Iterable<Product> getProductsCache() {
+		return productCache.values();
+	}
+
+	public Iterable<Product> getProductsCache(String name) {
+		return productCache.values();
+	}
+
+	public Iterable<Product> getProductsCache(Integer productId) {
 		return productCache.values();
 	}
 

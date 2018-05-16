@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import java.net.URI;
+import java.util.Optional;
+
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixProperty;
 
@@ -44,6 +47,28 @@ public class CategoryClient {
 		categories.forEach(u -> categoryCache.put(u.getId(), u));
 		return categories;
 	}
+
+	@HystrixCommand(fallbackMethod = "getCategoriesCache", commandProperties = {
+			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	public Iterable<Category> getCategories(String name) {
+		Collection<Category> categories = new HashSet<Category>();
+		Category[] tmpcategories = categoryRestTemplate.getForObject("http://category-service/categories?name=" + name, Category[].class);
+		Collections.addAll(categories, tmpcategories);
+		categoryCache.clear();
+		categories.forEach(u -> categoryCache.put(u.getId(), u));
+		return categories;
+	}
+
+	// @HystrixCommand(fallbackMethod = "getCategoriesCache", commandProperties = {
+	// 		@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
+	// public Iterable<Category> getCategories(Integer productId) {
+	// 	Collection<Category> categories = new HashSet<Category>();
+	// 	Category[] tmpcategories = categoryRestTemplate.getForObject("http://category-service/categories?productId=" + productId, Category[].class);
+	// 	Collections.addAll(categories, tmpcategories);
+	// 	categoryCache.clear();
+	// 	categories.forEach(u -> categoryCache.put(u.getId(), u));
+	// 	return categories;
+	// }
 
 	@HystrixCommand(fallbackMethod = "getCategoryCache", commandProperties = {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
@@ -91,6 +116,10 @@ public class CategoryClient {
 	}
 
 	public Iterable<Category> getCategoriesCache() {
+		return categoryCache.values();
+	}
+
+	public Iterable<Category> getCategoriesCache(String name) {
 		return categoryCache.values();
 	}
 
