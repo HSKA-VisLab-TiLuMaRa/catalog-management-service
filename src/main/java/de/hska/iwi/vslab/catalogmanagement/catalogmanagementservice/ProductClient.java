@@ -17,6 +17,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -40,11 +41,34 @@ public class ProductClient {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Iterable<Product> getProducts() {
 		Collection<Product> products = new HashSet<Product>();
-		Product[] tmpproducts = productRestTemplate.getForObject("http://product-service/products", Product[].class);
+		Product[] tmpproducts = (Product[]) safeGetRequest("http://product-service/products", Product[].class);
+		
+		// just to be sure
+		if (tmpproducts == null) {
+			System.out.println("GET request failed -> fallback method");
+			return getProductsCache();
+		}
+		
 		Collections.addAll(products, tmpproducts);
 		productCache.clear();
 		products.forEach(u -> productCache.put(u.getId(), u));
 		return products;
+	}
+
+	private Object[] safeGetRequest(String url, Class<?> clazz) {
+		int n = 5;
+
+		do {
+			try
+			{
+				return (Object[]) productRestTemplate.getForObject(url, clazz);
+			} catch (RestClientException e) {
+				n--;
+				System.out.println("GET request failed, " + n + " remaining; message " + e.getMessage());
+			}
+		} while (n > 0);
+		System.out.println("Failed after n tries");
+		return null;
 	}
 
 	@HystrixCommand(fallbackMethod = "getProductsCache", commandProperties = {
@@ -109,30 +133,37 @@ public class ProductClient {
 	}
 
 	public Iterable<Product> getProductsCache() {
+		System.out.println("Fallback method used");
 		return productCache.values();
 	}
 
 	public Iterable<Product> getProductsCache(String name) {
+		System.out.println("Fallback method used");
 		return productCache.values();
 	}
 
 	public Iterable<Product> getProductsCache(Integer productId) {
+		System.out.println("Fallback method used");
 		return productCache.values();
 	}
 
 	public Product getProductCache(Long productId) {
+		System.out.println("Fallback method used");
 		return productCache.getOrDefault(productId, new Product());
 	}
 
 	public Product createProductFallback(Product payload){
+		System.out.println("Fallback method used");
 		return payload;
 	}
 
 	public Product updateProductFallback(Long productId, Product payload){
+		System.out.println("Fallback method used");
 		return payload;
 	}
 
 	public Product deleteProductFallback(Long productId){
+		System.out.println("Fallback method used");
 		return new Product();
 	}
 

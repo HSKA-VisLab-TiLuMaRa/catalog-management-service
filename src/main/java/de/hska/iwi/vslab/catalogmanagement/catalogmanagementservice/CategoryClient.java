@@ -17,6 +17,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -41,7 +42,14 @@ public class CategoryClient {
 			@HystrixProperty(name = "circuitBreaker.requestVolumeThreshold", value = "2") })
 	public Iterable<Category> getCategories() {
 		Collection<Category> categories = new HashSet<Category>();
-		Category[] tmpcategories = categoryRestTemplate.getForObject("http://category-service/categories", Category[].class);
+		Category[] tmpcategories = (Category[]) safeGetRequest("http://category-service/categories", Category[].class);
+
+		// just to be sure
+		if (tmpcategories == null) {
+			System.out.println("GET request failed -> fallback method");
+			return getCategoriesCache();
+		}
+
 		Collections.addAll(categories, tmpcategories);
 		categoryCache.clear();
 		categories.forEach(u -> categoryCache.put(u.getId(), u));
@@ -139,5 +147,19 @@ public class CategoryClient {
 		return new Category();
 	}
 
+	private Object[] safeGetRequest(String url, Class<?> clazz) {
+		int n = 5;
 
+		do {
+			try
+			{
+				return (Object[]) categoryRestTemplate.getForObject(url, clazz);
+			} catch (RestClientException e) {
+				n--;
+				System.out.println("GET request failed, " + n + " remaining; message " + e.getMessage());
+			}
+		} while (n > 0);
+		System.out.println("Failed after n tries");
+		return null;
+	}
 }
