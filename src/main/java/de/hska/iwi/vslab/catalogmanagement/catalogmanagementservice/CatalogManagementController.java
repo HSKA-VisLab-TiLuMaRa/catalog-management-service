@@ -1,5 +1,7 @@
 package de.hska.iwi.vslab.catalogmanagement.catalogmanagementservice;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @EnableCircuitBreaker
@@ -29,8 +32,12 @@ public class CatalogManagementController {
 	/*
 	 * ------------PRODUCT-------------------
 	 */
+	@PreAuthorize("hasRolesExactly('ROLE_ADMIN')")
 	@RequestMapping(value = "/products", method = RequestMethod.GET)
 	public ResponseEntity<Iterable<Product>> getProducts(@RequestParam Optional<String> name, @RequestParam Optional<Integer> categoryId) {
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		System.out.println("-------------------------------");
+		System.out.println(auth.getPrincipal().toString());
 		if (name.isPresent()){
 			return new ResponseEntity<Iterable<Product>>(productClient.getProducts(name.get()), HttpStatus.OK);
 		} else if (categoryId.isPresent()) {
@@ -39,6 +46,7 @@ public class CatalogManagementController {
 			return new ResponseEntity<Iterable<Product>>(productClient.getProducts(), HttpStatus.OK);
 		}
 	}
+  //  OR hasRolesExactly('ROLE_USER')
 
 	@RequestMapping(value = "/products/{productId}", method = RequestMethod.GET)
 	public ResponseEntity<Product> getProduct(@PathVariable Long productId) {
@@ -95,6 +103,7 @@ public class CatalogManagementController {
 	/*
 	 * ------------CATEGORY-------------------
 	 */
+	@PreAuthorize("hasRolesExactly('ROLE_ADMIN')")
 	@RequestMapping(value = "/categories", method = RequestMethod.GET)
 	public ResponseEntity<Iterable<Category>> getCategories(@RequestParam Optional<String> name) {
 		if (name.isPresent()){

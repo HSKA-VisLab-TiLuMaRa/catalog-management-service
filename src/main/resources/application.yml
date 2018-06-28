@@ -10,6 +10,13 @@ eureka:
     metadataMap:
       instanceId: "${spring.application.name}:${random.value}"
 
+security:
+#  basic:
+#    enabled: false
+  oauth2:
+    resource:
+      userInfoUri: http://localhost:8099/api/clientinfo
+
 hystrix:
   command:
     play:
